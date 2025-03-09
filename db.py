@@ -1,5 +1,6 @@
 # db.py
 import sqlite3
+import json
 
 DATABASE = "bot.db"
 
