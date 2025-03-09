@@ -72,28 +72,26 @@ def claim_account(bot, call, platform):
     if user is None:
         bot.answer_callback_query(call.id, "User not found.")
         return
-    try:
-        # Convert the points field to a number (using float first in case it's stored as a string like "20" or "20.0")
-        current_points = int(float(user[4]))
-    except Exception:
-        bot.answer_callback_query(call.id, "Error reading your points.")
-        return
+
+    current_points = int(user[4])  # Get the points (ensure it's an integer)
     if current_points < 2:
         bot.answer_callback_query(call.id, "Insufficient points (each account costs 2 points). Earn more by referring or redeeming a key.")
         return
+
+    # Deduct points and claim account logic
     stock = get_stock_for_platform(platform)
     if not stock:
-        bot.answer_callback_query(call.id, "😞 No accounts available.")
+        bot.answer_callback_query(call.id, "No accounts available.")
         return
-    index = random.randint(0, len(stock) - 1)
-    account = stock.pop(index)
+
+    account = stock.pop(random.randint(0, len(stock) - 1))
     update_stock_for_platform(platform, stock)
     new_points = current_points - 2
     update_user_points(user_id, new_points)
-    bot.answer_callback_query(call.id, "🎉 Account claimed!")
-    bot.send_message(call.message.chat.id,
-                     f"<b>Your account for {platform}:</b>\n<code>{account}</code>\nRemaining points: {new_points}",
-                     parse_mode="HTML")
+
+    bot.answer_callback_query(call.id, "Account claimed!")
+    bot.send_message(call.message.chat.id, f"🎉 You have claimed an account for {platform}:\n<code>{account}</code>\nRemaining points: {new_points}", parse_mode="HTML")
+    
 
 def process_stock_upload(bot, message, platform):
     # If a document (.txt file) is attached, download its content.
