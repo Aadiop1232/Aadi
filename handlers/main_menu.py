@@ -34,12 +34,4 @@ def send_back_to_main_menu(bot, message):
     back_button = types.InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_main")
     markup.add(back_button)
     bot.send_message(message.chat.id, "Returning to main menu...", reply_markup=markup)
-
-@bot.callback_query_handler(func=lambda call: call.data == "back_main")
-def callback_back_main(call):
-    """
-    Callback for when a user clicks the back button to return to the main menu.
-    The "Admin Panel" button will still be visible for admins.
-    """
-    send_main_menu(call.bot, call.message)
     
