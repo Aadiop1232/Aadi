@@ -5,8 +5,12 @@ import json
 DATABASE = "bot.db"
 
 def init_db():
+    """
+    Initialize the database with all necessary tables.
+    """
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
+    
     # Users table: stores Telegram ID, username, join date, points, referrals, banned flag, pending_referrer
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -19,6 +23,7 @@ def init_db():
             pending_referrer TEXT
         )
     ''')
+    
     # Referrals table
     c.execute('''
         CREATE TABLE IF NOT EXISTS referrals (
@@ -27,6 +32,7 @@ def init_db():
             PRIMARY KEY (user_id, referred_id)
         )
     ''')
+    
     # Platforms table: platform name and JSON-encoded stock
     c.execute('''
         CREATE TABLE IF NOT EXISTS platforms (
@@ -34,6 +40,7 @@ def init_db():
             stock TEXT
         )
     ''')
+
     # Reviews table
     c.execute('''
         CREATE TABLE IF NOT EXISTS reviews (
@@ -43,6 +50,7 @@ def init_db():
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
     # Admin logs table
     c.execute('''
         CREATE TABLE IF NOT EXISTS admin_logs (
@@ -52,6 +60,7 @@ def init_db():
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
     # Channels table
     c.execute('''
         CREATE TABLE IF NOT EXISTS channels (
@@ -59,6 +68,7 @@ def init_db():
             channel_link TEXT
         )
     ''')
+
     # Admins table
     c.execute('''
         CREATE TABLE IF NOT EXISTS admins (
@@ -68,7 +78,8 @@ def init_db():
             banned INTEGER DEFAULT 0
         )
     ''')
-    # Keys table
+
+    # Keys table: stores key details, type, points, and whether it has been claimed.
     c.execute('''
         CREATE TABLE IF NOT EXISTS keys (
             key TEXT PRIMARY KEY,
@@ -79,10 +90,14 @@ def init_db():
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
     conn.commit()
     conn.close()
 
 def add_user(telegram_id, username, join_date, pending_referrer=None):
+    """
+    Adds a new user to the database if they do not already exist.
+    """
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
     c.execute("INSERT OR IGNORE INTO users (telegram_id, username, join_date, pending_referrer) VALUES (?, ?, ?, ?)",
@@ -91,6 +106,9 @@ def add_user(telegram_id, username, join_date, pending_referrer=None):
     conn.close()
 
 def get_user(telegram_id):
+    """
+    Retrieves a user from the database by their telegram_id.
+    """
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
     c.execute("SELECT * FROM users WHERE telegram_id=?", (telegram_id,))
@@ -99,6 +117,9 @@ def get_user(telegram_id):
     return user
 
 def update_user_pending_referral(telegram_id, pending_referrer):
+    """
+    Updates the pending referral for a user.
+    """
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
     c.execute("UPDATE users SET pending_referrer=? WHERE telegram_id=?", (pending_referrer, telegram_id))
@@ -106,6 +127,9 @@ def update_user_pending_referral(telegram_id, pending_referrer):
     conn.close()
 
 def clear_pending_referral(telegram_id):
+    """
+    Clears the pending referral for a user.
+    """
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
     c.execute("UPDATE users SET pending_referrer=NULL WHERE telegram_id=?", (telegram_id,))
@@ -113,6 +137,9 @@ def clear_pending_referral(telegram_id):
     conn.close()
 
 def add_referral(referrer_id, referred_id):
+    """
+    Adds a referral entry in the database and updates points for the referrer.
+    """
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
     c.execute("SELECT * FROM referrals WHERE referred_id=?", (referred_id,))
@@ -125,6 +152,9 @@ def add_referral(referrer_id, referred_id):
     conn.close()
 
 def add_review(user_id, review):
+    """
+    Adds a review from a user to the database.
+    """
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
     c.execute("INSERT INTO reviews (user_id, review) VALUES (?, ?)", (user_id, review))
@@ -132,6 +162,9 @@ def add_review(user_id, review):
     conn.close()
 
 def log_admin_action(admin_id, action):
+    """
+    Logs an action taken by an admin in the admin logs table.
+    """
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
     c.execute("INSERT INTO admin_logs (admin_id, action) VALUES (?, ?)", (admin_id, action))
@@ -139,6 +172,9 @@ def log_admin_action(admin_id, action):
     conn.close()
 
 def get_key(key):
+    """
+    Retrieves a specific key from the database.
+    """
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
     c.execute("SELECT key, type, points, claimed FROM keys WHERE key=?", (key,))
@@ -146,7 +182,21 @@ def get_key(key):
     conn.close()
     return result
 
+def add_key(key, key_type, points):
+    """
+    Adds a new key (normal or premium) to the keys table.
+    """
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
+    c.execute("INSERT OR IGNORE INTO keys (key, type, points, claimed) VALUES (?, ?, ?, ?)", 
+              (key, key_type, points, 0))
+    conn.commit()
+    conn.close()
+
 def claim_key_in_db(key, telegram_id):
+    """
+    Claims a key for the user and adds the points to their account.
+    """
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
     c.execute("SELECT claimed, type, points FROM keys WHERE key=?", (key,))
@@ -165,9 +215,49 @@ def claim_key_in_db(key, telegram_id):
     return f"Key redeemed successfully. You've been awarded {points} points."
 
 def update_user_points(telegram_id, points):
+    """
+    Updates the points for a specific user.
+    """
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
     c.execute("UPDATE users SET points=? WHERE telegram_id=?", (points, telegram_id))
+    conn.commit()
+    conn.close()
+
+def get_platforms():
+    """
+    Retrieves all platforms from the platforms table.
+    """
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
+    c.execute("SELECT platform_name FROM platforms")
+    platforms = [row[0] for row in c.fetchall()]
+    conn.close()
+    return platforms
+
+def get_stock_for_platform(platform_name):
+    """
+    Retrieves the stock of accounts for a specific platform.
+    """
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
+    c.execute("SELECT stock FROM platforms WHERE platform_name=?", (platform_name,))
+    row = c.fetchone()
+    conn.close()
+    if row and row[0]:
+        try:
+            return json.loads(row[0])  # Convert JSON string back into a list of accounts
+        except Exception:
+            return []
+    return []
+
+def update_stock_for_platform(platform_name, stock):
+    """
+    Updates the stock for a given platform.
+    """
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
+    c.execute("UPDATE platforms SET stock=? WHERE platform_name=?", (json.dumps(stock), platform_name))
     conn.commit()
     conn.close()
 
