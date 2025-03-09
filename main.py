@@ -4,7 +4,7 @@ import config
 from datetime import datetime
 from db import init_db, add_user, get_user, claim_key_in_db
 from handlers.verification import send_verification_message, handle_verification_callback
-from handlers.main_menu import send_main_menu
+from handlers.main_menu import send_main_menu, send_back_to_main_menu
 from handlers.referral import extract_referral_code, process_verified_referral, send_referral_menu, get_referral_link
 from handlers.rewards import send_rewards_menu, handle_platform_selection, claim_account
 from handlers.account_info import send_account_info
@@ -160,4 +160,3 @@ def callback_verify(call):
     process_verified_referral(call.from_user.id)
 
 bot.polling(none_stop=True)
-    
