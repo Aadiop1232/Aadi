@@ -9,7 +9,7 @@ from handlers.referral import extract_referral_code, process_verified_referral, 
 from handlers.rewards import send_rewards_menu, handle_platform_selection, claim_account
 from handlers.account_info import send_account_info
 from handlers.review import prompt_review
-from handlers.admin import send_admin_menu, admin_callback_handler, is_admin, generate_normal_key, generate_premium_key, add_key
+from handlers.admin import send_admin_menu, admin_callback_handler, is_admin, generate_normal_key, generate_premium_key, add_key, log_admin_action
 
 bot = telebot.TeleBot(config.TOKEN, parse_mode="HTML")
 init_db()
@@ -19,30 +19,44 @@ def start_command(message):
     user_id = str(message.from_user.id)
     pending_ref = extract_referral_code(message)
     user = get_user(user_id)
+    
+    # If user is not found, add them to the database
     if not user:
         add_user(user_id,
                  message.from_user.username or message.from_user.first_name,
                  datetime.now().strftime("%Y-%m-%d"),
                  pending_referrer=pending_ref)
+    
+    # Send verification message
     send_verification_message(bot, message)
 
 @bot.message_handler(commands=["gen"])
 def gen_command(message):
     user_id = str(message.from_user.id)
+    
+    # Only admins can generate keys
     if not is_admin(user_id):
         bot.reply_to(message, "🚫 You do not have permission to generate keys.")
         return
+    
     parts = message.text.split()
+    
+    # Ensure correct usage of the /gen command
     if len(parts) < 3:
         bot.reply_to(message, "Usage: /gen <normal|premium> <quantity>")
         return
+    
     key_type = parts[1].lower()
+    
     try:
         qty = int(parts[2])
     except ValueError:
         bot.reply_to(message, "Quantity must be a number.")
         return
+    
     generated = []
+    
+    # Generate normal or premium keys as per the command
     if key_type == "normal":
         for _ in range(qty):
             key = generate_normal_key()
@@ -56,16 +70,31 @@ def gen_command(message):
     else:
         bot.reply_to(message, "Key type must be either 'normal' or 'premium'.")
         return
+
+    # Notify the user of the generated keys
     bot.reply_to(message, "Generated keys:\n" + "\n".join(generated))
+
+    # Log the admin action and notify owners
+    action = f"Generated {len(generated)} {key_type} keys"
+    log_admin_action(user_id, action)
+
+    bot = telebot.TeleBot(config.TOKEN)
+    for owner in config.OWNERS:
+        bot.send_message(owner, f"Admin {message.from_user.username} has generated keys: \n" + "\n".join(generated))
 
 @bot.message_handler(commands=["redeem"])
 def redeem_command(message):
     user_id = str(message.from_user.id)
     parts = message.text.split()
+    
+    # Ensure correct usage of the /redeem command
     if len(parts) < 2:
         bot.reply_to(message, "Usage: /redeem <key>")
         return
+    
     key = parts[1].strip()
+    
+    # Redeem the key and provide feedback
     result = claim_key_in_db(key, user_id)
     bot.reply_to(message, result)
 
@@ -131,4 +160,4 @@ def callback_verify(call):
     process_verified_referral(call.from_user.id)
 
 bot.polling(none_stop=True)
-                            
+    
