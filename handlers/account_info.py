@@ -38,8 +38,6 @@ def send_account_info(bot, update):
             f"• <b>Join Date:</b> {user[3]}\n"
             f"• <b>Balance:</b> {user[4]} points\n"
             f"• <b>Total Referrals:</b> {user[5]}\n"
-            f"• <b>Banned:</b> {'Yes' if user[6] else 'No'}\n"
-            f"• <b>Pending Referrer:</b> {user[7] if user[7] else 'None'}"
         )
     else:
         text = "<b>🚫 You are trying to view someone else's account info. Access Denied.</b>"
