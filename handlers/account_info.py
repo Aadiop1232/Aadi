@@ -12,17 +12,25 @@ def send_account_info(bot, update):
     telegram_id = str(update.from_user.id)
     
     # Determine chat_id: if update is a message, use its chat_id; if it's a callback, use call.message.chat.id.
-    chat_id = update.message.chat.id if hasattr(update, "message") else update.callback_query.message.chat.id
+    if hasattr(update, "message"):
+        # It's a Message object
+        chat_id = update.message.chat.id
+    elif hasattr(update, "callback_query"):
+        # It's a CallbackQuery object
+        chat_id = update.callback_query.message.chat.id
+    else:
+        # In case it's neither, we can't proceed
+        raise ValueError("The update object is neither a Message nor a CallbackQuery.")
 
     # Retrieve user info from the database; if not registered, add the user on the fly.
     user = get_user(telegram_id)
     if not user:
         add_user(telegram_id, update.from_user.username or update.from_user.first_name, datetime.now().strftime("%Y-%m-%d"))
         user = get_user(telegram_id)
-    
-    # Display user information in text format
+
+    # Display user information dynamically
     text = (
-        f"<b>👤 Account Info 😁</b>\n"
+        f"<b>👤 Account Info 🍂</b>\n"
         f"• <b>Username:</b> {user[2]}\n"
         f"• <b>User ID:</b> {user[0]}\n"
         f"• <b>Join Date:</b> {user[3]}\n"
