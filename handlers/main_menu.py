@@ -1,9 +1,9 @@
 # handlers/main_menu.py
-import telebot
 from telebot import types
 from handlers.admin import is_admin
+from main import bot  # Import the bot instance from main.py
 
-def send_main_menu(bot, message):
+def send_main_menu(message):
     """
     Sends the main menu to the user.
     The "Admin Panel" button is always visible for admins, even after navigating to the admin panel.
@@ -27,7 +27,7 @@ def send_main_menu(bot, message):
     # Sending main menu with the options
     bot.send_message(message.chat.id, "<b>📋 Main Menu 📋</b>\nPlease choose an option:", parse_mode="HTML", reply_markup=markup)
 
-def send_back_to_main_menu(bot, message):
+def send_back_to_main_menu(message):
     """
     Sends the back button to go back to the main menu
     """
@@ -42,5 +42,5 @@ def callback_back_main(call):
     Callback for when a user clicks the back button to return to the main menu.
     The "Admin Panel" button will still be visible for admins.
     """
-    send_main_menu(bot, call.message)
+    send_main_menu(call.message)
     
